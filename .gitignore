@@ -1,0 +1,22 @@
+
+# Personal face images
+your_face.jpg
+*.jpeg
+*.jpg
+*.png
+
+# Environment variables and secrets
+.env
+.env.*
+secrets.py
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.venv/
+
+# IDE files
+.vscode/

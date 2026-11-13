@@ -1,0 +1,75 @@
+import network
+import time
+import urequests
+from machine import Pin, PWM
+import secrets
+
+ssid = secrets.WIFI_SSID
+password = secrets.WIFI_PASSWORD 
+
+
+# Server URL
+server_url = "http://192.168.1.109:5000/command"  
+
+# Initialize Servo (connect the servo to GPIO15)
+servo_pin = Pin(14, Pin.OUT)
+servo_pwm = PWM(servo_pin, freq=50)
+
+def connect_wifi():
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    wlan.connect(ssid, password)
+
+    attempts = 0
+    while not wlan.isconnected() and attempts < 15:
+        print(f"Connecting to WiFi... Attempt {attempts + 1}")
+        print(f"WiFi Status: {wlan.status()}")
+        attempts += 1
+        time.sleep(1)
+
+    if wlan.isconnected():
+        print("Connected to WiFi.")
+        print("IP Address:", wlan.ifconfig())
+    else:
+        print("Failed to connect to WiFi. Check credentials or router settings.")
+
+
+# Function to move the servo motor
+def move_servo(angle):
+    # Convert angle (0 to 180 degrees) to PWM duty cycle
+    duty = int((angle / 180) * 1023)
+    servo_pwm.duty(duty)
+
+# Main program loop
+def main():
+    connect_wifi()
+
+    while True:
+        try:
+            # Send HTTP GET request to the server
+            response = urequests.get(server_url)
+            if response.status_code == 200:
+                payload = response.text
+                print(payload)
+
+                if '"command":"1"' in payload:
+                    move_servo(180)  # Open the door (move servo to 180 degrees)
+                    print("Door opened.")
+                else:
+                    move_servo(0)  # Close the door (move servo to 0 degrees)
+                    print("Door closed.")
+            else:
+                print("Error retrieving command. HTTP Status Code:", response.status_code)
+
+            response.close()
+
+        except Exception as e:
+            # Handle connection errors or unexpected exceptions
+            print("Error connecting to server:", e)
+            time.sleep(5)  # Wait before retrying
+
+        time.sleep(5)  # Poll server every 5 seconds
+
+# Run the program
+if __name__ == "__main__":
+    main()
